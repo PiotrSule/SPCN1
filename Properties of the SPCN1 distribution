@@ -1,0 +1,95 @@
+library(RelDists)
+library(zipfR)
+library(pracma)
+library(flexsurv)
+library(xlsx)
+library(ggamma)
+library(gsl)
+library(PSDistr)
+library(Deriv) 
+library(splines)
+
+#normalization condition
+norm_cond<-function(c,d) {
+  esgn1 <- function(x) dSPCN1(x,c,d)
+  return (as.numeric(integrate(Vectorize(esgn1), lower = -Inf, upper = Inf)[1]))}
+
+#CDF
+library(PSDistr)
+dSPCN1 <- function(x,c,d){
+  return(2*dpc(x,0,1,c)*ppc(x*d,0,1,c))
+}
+
+#PDF
+pSPCN1 <- function(x,c,d){
+  return(integral(function(x) dSPCN1(x,c,d), -100, x, reltol = 1e-12, method = "Simpson"))
+}
+
+#quantile 
+qSPCN1=function(p,c,d){
+  u11 = function(x,c,d) pSPCN1(x,c,d)-p
+  return(uniroot(u11, c(-5,5), tol = 0.0000000001, f.lower = -5, c=c, d=d)$root)
+}
+
+#generator
+rSPCN1 =function(n,c,d) {
+  x=numeric(n)
+  for (i in 1:n) x[i]=qSPCN1(runif(1,0,1),c,d)
+  return(sort(x))
+}
+
+#ordinary moments
+mSPCN1=function(k,c,d) {
+  return(integral(function(x) x^k*dSPCN1(x,c,d), -Inf, Inf, reltol = 1e-12, method = "Simpson"))
+}
+
+#skewness
+g1SPCN1=function(c,d){
+  w1=mSPCN1(3,c,d)-3*mSPCN1(1,c,d)*mSPCN1(2,c,d)+2*mSPCN1(1,c,d)^3
+  w2=mSPCN1(2,c,d)-mSPCN1(1,c,d)^2
+  return(w1/w2^(1.5))
+}
+
+#kurtosis
+g2SPCN1=function(c,d){
+  w1=mSPCN1(4,c,d)-4*mSPCN1(1,c,d)*mSPCN1(3,c,d)+6*mSPCN1(1,c,d)^2*
+    mSPCN1(2,c,d)-3*mSPCN1(1,c,d)^4
+  w2=mSPCN1(2,c,d)-mSPCN1(1,c,d)^2
+  return(w1/w2^2)
+}
+
+# PDF of order statistics
+ dOSSPCN1=function(x,i,n,c,d) {
+  return(fact(n)/fact(i-1)/fact(n-i)*dSPCN1(x,c,d)*pSPCN1(x,c,d)^(i-1)
+         *(1-pSPCN1(x,c,d)^(n-i)))
+ }
+# moments of order statistics
+mOSSPCN1=function(k,i,n,c,d) {
+  return(integral(function(x) x^k*dOSSPCN1(x,i,n,c,d), -Inf, Inf, reltol = 1e-12, method = "Simpson"))
+}
+
+# Shannon entropy
+sSPCN1=function(c,d){
+  return(integral(function(x) -dSPCN1(x,c,d)*log(dSPCN1(x,c,d)), -Inf, Inf, reltol = 1e-12, method = "Simpson"))
+}
+
+I11 <- function(x, c, d){
+  eval(Deriv(Deriv(expression(n*log(2*c)+(c-1)*log(abs(x))+log(dnorm(abs(x)^c,0,1))+log(porm(sign(d*x),0,1)*abs(x*d)^c)),'c'),'d'))
+}
+I12 <- function(x, c, d){
+  eval(Deriv(Deriv(expression(n*log(2*c)+(c-1)*log(abs(x))+log(dnorm(abs(x)^c,0,1))+log(porm(sign(d*x),0,1)*abs(x*d)^c)),'c'),'d'))
+}
+I21 <- function(x, c, d) return(I12(x,c,d))
+I22 <- function(x, c, d){
+  eval(Deriv(Deriv(expression(n*log(2*c)+(c-1)*log(abs(x))+log(dnorm(abs(x)^c,0,1))+log(porm(sign(d*x),0,1)*abs(x*d)^c)),'d'),'d'))
+}
+
+# Fisher Information Matrix
+fimSPCN1=function(c,d){
+  FIM=numeric(4)
+  FIM[1]=integral(function(x) I11(x,c,d)*dSPCN1(x,c,d), -50, 50, reltol = 1e-12, method = "Simpson")
+  FIM[2]=integral(function(x) I12(x,c,d)*dSPCN1(x,c,d), -50, 50, reltol = 1e-12, method = "Simpson")
+  FIM[3]=FIM[2]
+  FIM[4]=integral(function(x) I22(x,c,d)*dSPCN1(x,c,d), -50, 50, reltol = 1e-12, method = "Simpson")
+  return(FIM)
+}
