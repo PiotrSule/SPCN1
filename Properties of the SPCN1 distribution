@@ -61,7 +61,7 @@ g2SPCN1=function(c,d){
 # PDF of order statistics
  dOSSPCN1=function(x,i,n,c,d) {
   return(fact(n)/fact(i-1)/fact(n-i)*dSPCN1(x,c,d)*pSPCN1(x,c,d)^(i-1)
-         *(1-pSPCN1(x,c,d)^(n-i)))
+         *(1-pSPCN1(x,c,d))^(n-i))
  }
 # moments of order statistics
 mOSSPCN1=function(k,i,n,c,d) {
