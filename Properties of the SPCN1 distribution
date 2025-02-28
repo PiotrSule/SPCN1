@@ -85,12 +85,12 @@ I22 <- function(x, c, d){
 }
 
 # Fisher Information Matrix
-fimSPCN1=function(c,d){
+fimSPCN1=function(c,d,xg){
   FIM=numeric(4)
-  FIM[1]=integral(function(x) I11(x,c,d)*dSPCN1(x,c,d), -50, 50, reltol = 1e-12, method = "Simpson")
-  FIM[2]=integral(function(x) I12(x,c,d)*dSPCN1(x,c,d), -50, 50, reltol = 1e-12, method = "Simpson")
+  FIM[1]=-integral(function(x) I11(x,c,d)*dSPCN1(x,c,d), -xg, xg, reltol = 1e-9, method = "Kronrod")
+  FIM[2]=-integral(function(x) I12(x,c,d)*dSPCN1(x,c,d), -xg, xg, reltol = 1e-9, method = "Kronrod")
   FIM[3]=FIM[2]
-  FIM[4]=integral(function(x) I22(x,c,d)*dSPCN1(x,c,d), -50, 50, reltol = 1e-12, method = "Simpson")
+  FIM[4]=-integral(function(x) I22(x,c,d)*dSPCN1(x,c,d), -xg, xg, reltol = 1e-9, method = "Kronrod")
   return(FIM)
 }
 
